@@ -1,15 +1,3 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.stats as stats
-import re
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-
-%matplotlib inline
-pd.set_option('display.max_rows', None)
-pd.set_option('display.max_columns', None)
-
 def get_num_columns(database: pd.DataFrame) -> pd.DataFrame:
   _nums = database.select_dtypes(include = 'number').columns.to_list()
 
@@ -85,20 +73,33 @@ def get_strong_week_affection(database: pd.DataFrame, target_column: str, coef_t
   return {'strong_affection': _strong_affection,
           'week_affection': _week_affection,
           'median_affection': _median_affection}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+import re
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
 
+%matplotlib inline
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
 
 
 def get_category_influence(df:pd.DataFrame, target_column, get_top = None, plimit = 1e-04, ascending =True):
   _df = get_obj_columns(df)
-  _category = _df.columns
-  _category = [re.sub('\W', '', i) for i in _category]
+  category = list(_df.columns)
+  _category = [re.sub('\W', '', i) for i in category]
   _df.columns = _category
   _df[target_column] = df[target_column]
 
 
   model = ols(target_column + ' ~ ' + ' + '.join(_category), data = _df).fit()
   # thực hiện kiểm định ANOVA
-  anova_table = sm.stats.anova_lm(model)
+  anova_table = sm.stats.anova_lm(model).reset_index()
+
+  category.append('Residual')
+  anova_table['index'] = category
 
   if ascending:
     anova_table = anova_table[anova_table['PR(>F)'] < plimit]
@@ -111,7 +112,7 @@ def get_category_influence(df:pd.DataFrame, target_column, get_top = None, plimi
 
     anova_table = anova_table.sort_values(by = 'PR(>F)', ascending= ascending)[:get_top]
 
-    return anova_table.index.to_list(), anova_table['PR(>F)'].to_list()
+    return anova_table['index'].to_list(), anova_table['PR(>F)'].to_list()
   except:
     anova_table = anova_table.sort_values(by = 'PR(>F)', ascending= ascending)
-    return anova_table.index.to_list(), anova_table['PR(>F)'].to_list()
+    return anova_table['index'].to_list(), anova_table['PR(>F)'].to_list()
