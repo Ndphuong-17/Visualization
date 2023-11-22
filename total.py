@@ -72,6 +72,33 @@ def preprocesing_dataX(num_df: pd.Series, obj_df:pd.Series, model = None):
     X = ct.fit_transform(X)
     
     return X
+
+def get_value_influence(df6: pd.DataFrame, target_column: str, compared_column: list, max_target = 30000, include = None) -> list:
+  df6_grp = df6.groupby(['make', 'bodystyle', 'enginetype'],
+                           as_index = False).mean()
+  df6_pivot = df6_grp.pivot(index = ['make', 'enginetype'], columns = ['bodystyle'])
+
+  if include == 'max':
+    result = [df6_pivot.max(axis=1).idxmax() + (df6_pivot.max().idxmax()[1],)]
+  elif include == None:
+    df_new = df6_pivot[df6_pivot > max_target]
+    df_new = df_new.stack()
+    result = df_new.index.to_list()
+
+  return result
+
+def get_outlier(df: pd.Series):
+  # Calculate Q1, Q3 and IQR
+  Q1 = df.quantile(0.25)
+  Q3 = df.quantile(0.75)
+  IQR = Q3 - Q1
+
+  df_outliers = df[(df < Q1 - 1.5 * IQR) | (df > Q3 + 1.5 * IQR)].values.tolist()
+  outlier_percent = 100.0*(len(df_outliers)/len(df))
+
+  return(df_outliers, outlier_percent)
+
+
         
 
 
